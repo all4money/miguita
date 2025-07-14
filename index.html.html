@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Finanzas - Gestor Simple</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-2xl mx-auto p-6 bg-white min-h-screen">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Mis Finanzas</h1>
+            <p class="text-gray-600">Gestiona tus ingresos y egresos de forma simple</p>
+        </div>
+
+        <!-- Formulario -->
+        <div class="bg-gray-50 p-6 rounded-lg mb-8">
+            <h2 class="text-xl font-semibold mb-4">Agregar Transacción</h2>
+            
+            <div class="space-y-4">
+                <div class="flex gap-4">
+                    <button
+                        id="btn-ingreso"
+                        class="flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-green-500 text-white"
+                    >
+                        <i data-lucide="trending-up" class="w-4 h-4 inline mr-2"></i>
+                        Ingreso
+                    </button>
+                    <button
+                        id="btn-egreso"
+                        class="flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-white text-gray-700 border"
+                    >
+                        <i data-lucide="trending-down" class="w-4 h-4 inline mr-2"></i>
+                        Egreso
+                    </button>
+                </div>
+
+                <input
+                    type="number"
+                    id="amount"
+                    placeholder="Monto"
+                    class="w-full p-3 border rounded-lg text-lg"
+                />
+
+                <input
+                    type="text"
+                    id="description"
+                    placeholder="Descripción"
+                    class="w-full p-3 border rounded-lg"
+                />
+
+                <button
+                    id="add-transaction"
+                    class="w-full bg-blue-500 text-white p-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                >
+                    <i data-lucide="plus" class="w-4 h-4 inline mr-2"></i>
+                    Agregar
+                </button>
+            </div>
+        </div>
+
+        <!-- Datos: Exportar/Importar -->
+        <div class="bg-yellow-50 p-4 rounded-lg mb-6">
+            <h3 class="text-lg font-semibold mb-3">Guardar/Cargar Datos</h3>
+            <div class="flex gap-3">
+                <button
+                    id="export-data"
+                    class="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"
+                >
+                    <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                    Descargar Datos
+                </button>
+                <input
+                    type="file"
+                    id="import-file"
+                    accept=".json"
+                    class="hidden"
+                />
+                <button
+                    id="import-data"
+                    class="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                    <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
+                    Cargar Datos
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros de Período -->
+        <div class="flex gap-2 mb-6">
+            <button class="period-btn px-4 py-2 rounded-lg capitalize transition-colors bg-blue-500 text-white" data-period="dia">
+                Hoy
+            </button>
+            <button class="period-btn px-4 py-2 rounded-lg capitalize transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300" data-period="semana">
+                Semana
+            </button>
+            <button class="period-btn px-4 py-2 rounded-lg capitalize transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300" data-period="mes">
+                Mes
+            </button>
+            <button class="period-btn px-4 py-2 rounded-lg capitalize transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300" data-period="año">
+                Año
+            </button>
+        </div>
+
+        <!-- Resumen -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-green-50 p-4 rounded-lg text-center">
+                <div class="text-green-600 font-semibold mb-1">Ingresos</div>
+                <div id="total-ingresos" class="text-2xl font-bold text-green-700">
+                    $0
+                </div>
+            </div>
+            
+            <div class="bg-red-50 p-4 rounded-lg text-center">
+                <div class="text-red-600 font-semibold mb-1">Egresos</div>
+                <div id="total-egresos" class="text-2xl font-bold text-red-700">
+                    $0
+                </div>
+            </div>
+            
+            <div id="balance-card" class="bg-blue-50 p-4 rounded-lg text-center">
+                <div id="balance-label" class="text-blue-600 font-semibold mb-1">
+                    Balance
+                </div>
+                <div id="total-balance" class="text-2xl font-bold text-blue-700">
+                    $0
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Transacciones -->
+        <div class="bg-gray-50 p-6 rounded-lg">
+            <h3 id="transactions-title" class="text-lg font-semibold mb-4">
+                Transacciones - Hoy
+            </h3>
+            
+            <div id="transactions-list" class="space-y-2">
+                <p class="text-gray-500 text-center py-8">
+                    No hay transacciones en este período
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let transactions = [];
+        let currentType = 'ingreso';
+        let currentPeriod = 'dia';
+
+        // Cargar datos guardados al inicio
+        loadData();
+
+        // Event listeners
+        document.getElementById('btn-ingreso').addEventListener('click', () => setType('ingreso'));
+        document.getElementById('btn-egreso').addEventListener('click', () => setType('egreso'));
+        document.getElementById('add-transaction').addEventListener('click', addTransaction);
+        document.getElementById('export-data').addEventListener('click', exportData);
+        document.getElementById('import-data').addEventListener('click', () => document.getElementById('import-file').click());
+        document.getElementById('import-file').addEventListener('change', importData);
+
+        // Period buttons
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', () => setPeriod(btn.dataset.period));
+        });
+
+        // Enter key support
+        document.getElementById('amount').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTransaction();
+        });
+        document.getElementById('description').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTransaction();
+        });
+
+        // Funciones principales
+        function setType(type) {
+            currentType = type;
+            const ingresoBtn = document.getElementById('btn-ingreso');
+            const egresoBtn = document.getElementById('btn-egreso');
+            
+            if (type === 'ingreso') {
+                ingresoBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-green-500 text-white';
+                egresoBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-white text-gray-700 border';
+            } else {
+                ingresoBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-white text-gray-700 border';
+                egresoBtn.className = 'flex-1 py-3 px-4 rounded-lg font-medium transition-colors bg-red-500 text-white';
+            }
+        }
+
+        function setPeriod(period) {
+            currentPeriod = period;
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                if (btn.dataset.period === period) {
+                    btn.className = 'period-btn px-4 py-2 rounded-lg capitalize transition-colors bg-blue-500 text-white';
+                } else {
+                    btn.className = 'period-btn px-4 py-2 rounded-lg capitalize transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300';
+                }
+            });
+            updateDisplay();
+        }
+
+        function addTransaction() {
+            const amount = document.getElementById('amount').value;
+            const description = document.getElementById('description').value;
+            
+            if (!amount || !description) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+            
+            const newTransaction = {
+                id: Date.now(),
+                amount: parseFloat(amount),
+                description: description,
+                type: currentType,
+                date: new Date().toISOString().split('T')[0]
+            };
+            
+            transactions.push(newTransaction);
+            saveData();
+            updateDisplay();
+            
+            // Limpiar formulario
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+        }
+
+        function getFilteredTransactions() {
+            const now = new Date();
+            
+            return transactions.filter(t => {
+                const transactionDate = new Date(t.date);
+                const daysDiff = Math.floor((now - transactionDate) / (1000 * 60 * 60 * 24));
+                
+                switch(currentPeriod) {
+                    case 'dia': return daysDiff === 0;
+                    case 'semana': return daysDiff <= 7;
+                    case 'mes': return daysDiff <= 30;
+                    case 'año': return daysDiff <= 365;
+                    default: return true;
+                }
+            });
+        }
+
+        function updateDisplay() {
+            const filtered = getFilteredTransactions();
+            const ingresos = filtered.filter(t => t.type === 'ingreso').reduce((sum, t) => sum + t.amount, 0);
+            const egresos = filtered.filter(t => t.type === 'egreso').reduce((sum, t) => sum + t.amount, 0);
+            const balance = ingresos - egresos;
+            
+            // Actualizar totales
+            document.getElementById('total-ingresos').textContent = `$${ingresos.toLocaleString()}`;
+            document.getElementById('total-egresos').textContent = `$${egresos.toLocaleString()}`;
+            document.getElementById('total-balance').textContent = `$${balance.toLocaleString()}`;
+            
+            // Actualizar colores del balance
+            const balanceCard = document.getElementById('balance-card');
+            const balanceLabel = document.getElementById('balance-label');
+            const totalBalance = document.getElementById('total-balance');
+            
+            if (balance >= 0) {
+                balanceCard.className = 'bg-blue-50 p-4 rounded-lg text-center';
+                balanceLabel.className = 'text-blue-600 font-semibold mb-1';
+                totalBalance.className = 'text-2xl font-bold text-blue-700';
+            } else {
+                balanceCard.className = 'bg-orange-50 p-4 rounded-lg text-center';
+                balanceLabel.className = 'text-orange-600 font-semibold mb-1';
+                totalBalance.className = 'text-2xl font-bold text-orange-700';
+            }
+            
+            // Actualizar título
+            const titles = {
+                'dia': 'Hoy',
+                'semana': 'Semana',
+                'mes': 'Mes',
+                'año': 'Año'
+            };
+            document.getElementById('transactions-title').textContent = `Transacciones - ${titles[currentPeriod]}`;
+            
+            // Actualizar lista de transacciones
+            updateTransactionsList(filtered);
+        }
+
+        function updateTransactionsList(filtered) {
+            const listContainer = document.getElementById('transactions-list');
+            
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<p class="text-gray-500 text-center py-8">No hay transacciones en este período</p>';
+                return;
+            }
+            
+            const sortedTransactions = [...filtered].reverse();
+            
+            listContainer.innerHTML = sortedTransactions.map(transaction => `
+                <div class="flex justify-between items-center p-3 bg-white rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full mr-3 ${transaction.type === 'ingreso' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                        <div>
+                            <div class="font-medium">${transaction.description}</div>
+                            <div class="text-sm text-gray-500">${transaction.date}</div>
+                        </div>
+                    </div>
+                    <div class="text-lg font-semibold ${transaction.type === 'ingreso' ? 'text-green-600' : 'text-red-600'}">
+                        ${transaction.type === 'ingreso' ? '+' : '-'}$${transaction.amount.toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Funciones para guardar/cargar datos
+        function saveData() {
+            localStorage.setItem('financeData', JSON.stringify(transactions));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('financeData');
+            if (saved) {
+                transactions = JSON.parse(saved);
+                updateDisplay();
+            }
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(transactions, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `mis-finanzas-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        transactions = importedData;
+                        saveData();
+                        updateDisplay();
+                        alert('Datos cargados exitosamente');
+                    } else {
+                        alert('Formato de archivo incorrecto');
+                    }
+                } catch (error) {
+                    alert('Error al cargar el archivo');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Inicializar iconos de Lucide
+        lucide.createIcons();
+    </script>
+</body>
+</html>
